@@ -77,6 +77,9 @@ const (
 
 	// the mark-for-drop chain
 	KubeMarkDropChain utiliptables.Chain = "KUBE-MARK-DROP"
+
+	// the mark-for-reject chain
+	kubeMarkRejectChain utiliptables.Chain = "KUBE-MARK-REJECT"
 )
 
 // IPTablesVersioner can query the current iptables version.
@@ -847,6 +850,12 @@ func (proxier *Proxier) syncProxyRules() {
 		writeLine(natChains, utiliptables.MakeChainLine(KubeMarkMasqChain))
 	}
 
+	if chain, ok := existingNATChains[kubeMarkRejectChain]; ok{
+		writeLine(natChains, chain)
+	}else {
+		writeLine(natChains, utiliptables.MakeChainLine(kubeMarkRejectChain))
+	}
+
 	// Install the kubernetes-specific postrouting rules. We use a whole chain for
 	// this so that it is easier to flush and change, for example if the mark
 	// value should ever change.
@@ -863,6 +872,23 @@ func (proxier *Proxier) syncProxyRules() {
 	writeLine(natRules, []string{
 		"-A", string(KubeMarkMasqChain),
 		"-j", "MARK", "--set-xmark", proxier.masqueradeMark,
+	}...)
+
+
+	// set mark for the chains which need to be rejected,
+	// hard code here, 0x3000 should be set in struct proxier, e.g proxier.rejectMark
+	writeLine(natRules, []string{
+		"-A", string(kubeMarkRejectChain),
+		"-j", "MARK", "--set-xmark", "0x3000/0x3000",
+	}...)
+
+	// should better install this rule with EnsureChain and put this function in kubelet_network.go
+	// since we only need to build new kube-proxy, temporary put this function here
+	writeLine(filterRules, []string{
+		"-A", "INPUT",
+		"-m", "comment", "--comment", `"kubernetes service and nodeport traffic for reject traffic"`,
+		"-m", "mark", "--mark", "0x3000/0x3000",
+		"-j", "REJECT",
 	}...)
 
 	// Accumulate NAT chains to keep.
@@ -1089,27 +1115,37 @@ func (proxier *Proxier) syncProxyRules() {
 			// table doesn't currently have the same per-service structure that
 			// the nat table does, so we just stick this into the kube-services
 			// chain.
-			if len(proxier.endpointsMap[svcName]) == 0 {
-				writeLine(filterRules,
-					"-A", string(kubeServicesChain),
-					"-m", "comment", "--comment", fmt.Sprintf(`"%s has no endpoints"`, svcName.String()),
-					"-m", "addrtype", "--dst-type", "LOCAL",
-					"-m", protocol, "-p", protocol,
-					"--dport", fmt.Sprintf("%d", svcInfo.nodePort),
-					"-j", "REJECT",
-				)
-			}
+			//if len(proxier.endpointsMap[svcName]) == 0 {
+			//	writeLine(filterRules,
+			//		"-A", string(kubeServicesChain),
+			//		"-m", "comment", "--comment", fmt.Sprintf(`"%s has no endpoints"`, svcName.String()),
+			//		"-m", "addrtype", "--dst-type", "LOCAL",
+			//		"-m", protocol, "-p", protocol,
+			//		"--dport", fmt.Sprintf("%d", svcInfo.nodePort),
+			//		"-j", "REJECT",
+			//	)
+			//}
 		}
 
 		// If the service has no endpoints then reject packets.
+		//if len(proxier.endpointsMap[svcName]) == 0 {
+		//	writeLine(filterRules,
+		//		"-A", string(kubeServicesChain),
+		//		"-m", "comment", "--comment", fmt.Sprintf(`"%s has no endpoints"`, svcName.String()),
+		//		"-m", protocol, "-p", protocol,
+		//		"-d", fmt.Sprintf("%s/32", svcInfo.clusterIP.String()),
+		//		"--dport", fmt.Sprintf("%d", svcInfo.port),
+		//		"-j", "REJECT",
+		//	)
+		//	continue
+		//}
+
+		// If the service has no endpoints then go into kubeMarkRejectChain.
 		if len(proxier.endpointsMap[svcName]) == 0 {
-			writeLine(filterRules,
-				"-A", string(kubeServicesChain),
+			writeLine(natRules,
+				"-A", string(svcChain),
 				"-m", "comment", "--comment", fmt.Sprintf(`"%s has no endpoints"`, svcName.String()),
-				"-m", protocol, "-p", protocol,
-				"-d", fmt.Sprintf("%s/32", svcInfo.clusterIP.String()),
-				"--dport", fmt.Sprintf("%d", svcInfo.port),
-				"-j", "REJECT",
+				"-j", string(kubeMarkRejectChain),
 			)
 			continue
 		}
