@@ -761,7 +761,7 @@ func (proxier *Proxier) syncProxyRules() {
 			table utiliptables.Table
 			chain utiliptables.Chain
 		}{
-			{utiliptables.TableFilter, utiliptables.ChainInput},
+			//{utiliptables.TableFilter, utiliptables.ChainInput},
 			{utiliptables.TableFilter, utiliptables.ChainOutput},
 			{utiliptables.TableNAT, utiliptables.ChainOutput},
 			{utiliptables.TableNAT, utiliptables.ChainPrerouting},
@@ -789,6 +789,18 @@ func (proxier *Proxier) syncProxyRules() {
 			glog.Errorf("Failed to ensure that %s chain %s jumps to %s: %v", utiliptables.TableNAT, utiliptables.ChainPostrouting, kubePostroutingChain, err)
 			return
 		}
+	}
+
+	// should better install this rule with EnsureChain and put this function in kubelet_network.go
+	// since we only need to build new kube-proxy, temporary put this function here
+
+	if _, err := proxier.iptables.EnsureRule(utiliptables.Append, utiliptables.TableFilter, utiliptables.ChainInput,
+		"-m", "comment", "--comment", "kubernetes reject traffic",
+		"-m", "mark", "--mark", "0x3000/0x3000",
+		"-j", "REJECT",
+	); err != nil {
+		glog.Errorf("Failed to ensure that %s reject chain %s: %v", utiliptables.TableFilter, utiliptables.ChainInput,err)
+		return
 	}
 
 	//
@@ -880,15 +892,6 @@ func (proxier *Proxier) syncProxyRules() {
 	writeLine(natRules, []string{
 		"-A", string(kubeMarkRejectChain),
 		"-j", "MARK", "--set-xmark", "0x3000/0x3000",
-	}...)
-
-	// should better install this rule with EnsureChain and put this function in kubelet_network.go
-	// since we only need to build new kube-proxy, temporary put this function here
-	writeLine(filterRules, []string{
-		"-A", "INPUT",
-		"-m", "comment", "--comment", `"kubernetes service and nodeport traffic for reject traffic"`,
-		"-m", "mark", "--mark", "0x3000/0x3000",
-		"-j", "REJECT",
 	}...)
 
 	// Accumulate NAT chains to keep.
