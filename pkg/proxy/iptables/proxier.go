@@ -791,7 +791,7 @@ func (proxier *Proxier) syncProxyRules() {
 		}
 	}
 
-	// Create reject filter. 
+	// Create reject filter.
 	{
 		// should better install this rule with EnsureChain and put this function in kubelet_network.go
 		// since we only need to build new kube-proxy, temporary put this function here
@@ -810,7 +810,7 @@ func (proxier *Proxier) syncProxyRules() {
 			"-m", "mark", "--mark", "0x3000/0x3000",
 			"-j", "REJECT",
 		); err != nil {
-			glog.Errorf("Failed to ensure that %s reject chain %s: %v", utiliptables.TableFilter, utiliptables.ChainInput, err)
+			glog.Errorf("Failed to ensure that %s reject chain %s: %v", utiliptables.TableFilter, utiliptables.ChainOutput, err)
 			return
 		}
 	}
