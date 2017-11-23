@@ -791,16 +791,28 @@ func (proxier *Proxier) syncProxyRules() {
 		}
 	}
 
-	// should better install this rule with EnsureChain and put this function in kubelet_network.go
-	// since we only need to build new kube-proxy, temporary put this function here
+	// Create reject filter. 
+	{
+		// should better install this rule with EnsureChain and put this function in kubelet_network.go
+		// since we only need to build new kube-proxy, temporary put this function here
 
-	if _, err := proxier.iptables.EnsureRule(utiliptables.Append, utiliptables.TableFilter, utiliptables.ChainInput,
-		"-m", "comment", "--comment", "kubernetes reject traffic",
-		"-m", "mark", "--mark", "0x3000/0x3000",
-		"-j", "REJECT",
-	); err != nil {
-		glog.Errorf("Failed to ensure that %s reject chain %s: %v", utiliptables.TableFilter, utiliptables.ChainInput,err)
-		return
+		if _, err := proxier.iptables.EnsureRule(utiliptables.Append, utiliptables.TableFilter, utiliptables.ChainInput,
+			"-m", "comment", "--comment", "kubernetes reject traffic",
+			"-m", "mark", "--mark", "0x3000/0x3000",
+			"-j", "REJECT",
+		); err != nil {
+			glog.Errorf("Failed to ensure that %s reject chain %s: %v", utiliptables.TableFilter, utiliptables.ChainInput, err)
+			return
+		}
+
+		if _, err := proxier.iptables.EnsureRule(utiliptables.Append, utiliptables.TableFilter, utiliptables.ChainOutput,
+			"-m", "comment", "--comment", "kubernetes reject traffic",
+			"-m", "mark", "--mark", "0x3000/0x3000",
+			"-j", "REJECT",
+		); err != nil {
+			glog.Errorf("Failed to ensure that %s reject chain %s: %v", utiliptables.TableFilter, utiliptables.ChainInput, err)
+			return
+		}
 	}
 
 	//
