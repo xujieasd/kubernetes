@@ -144,6 +144,10 @@ func newProxyServer(
 			// MasqueradeBit must be specified or defaulted.
 			return nil, fmt.Errorf("unable to read IPTables MasqueradeBit from config")
 		}
+		if config.IPTables.RejectBit == nil {
+			// RejectBit must be specified or defaulted.
+			return nil, fmt.Errorf("unable to read IPTables RejectBit from config")
+		}
 
 		// TODO this has side effects that should only happen when Run() is invoked.
 		proxierIPTables, err := iptables.NewProxier(
@@ -154,6 +158,7 @@ func newProxyServer(
 			config.IPTables.MinSyncPeriod.Duration,
 			config.IPTables.MasqueradeAll,
 			int(*config.IPTables.MasqueradeBit),
+			int(*config.IPTables.RejectBit),
 			config.ClusterCIDR,
 			hostname,
 			nodeIP,

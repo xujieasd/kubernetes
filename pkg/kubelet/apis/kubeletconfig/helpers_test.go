@@ -181,6 +181,7 @@ var (
 		"HostPIDSources[*]",
 		"IPTablesDropBit",
 		"IPTablesMasqueradeBit",
+		"IPTablesRejectBit",
 		"ImageGCHighThresholdPercent",
 		"ImageGCLowThresholdPercent",
 		"ImageMinimumGCAge.Duration",

@@ -59,6 +59,9 @@ func ValidateKubeletConfiguration(kc *kubeletconfig.KubeletConfiguration) error 
 	if utilvalidation.IsInRange(int(kc.IPTablesMasqueradeBit), 0, 31) != nil {
 		allErrors = append(allErrors, fmt.Errorf("Invalid configuration: IPTablesMasqueradeBit (--iptables-masquerade-bit) %v must be between 0 and 31, inclusive", kc.IPTablesMasqueradeBit))
 	}
+	if utilvalidation.IsInRange(int(kc.IPTablesRejectBit), 0, 31) != nil {
+		allErrors = append(allErrors, fmt.Errorf("Invalid configuration: IPTablesRejectBit (--iptables-reject-bit) %v must be between 0 and 31, inclusive", kc.IPTablesRejectBit))
+	}
 	if kc.KubeAPIBurst < 0 {
 		allErrors = append(allErrors, fmt.Errorf("Invalid configuration: KubeAPIBurst (--kube-api-burst) %v must not be a negative number", kc.KubeAPIBurst))
 	}

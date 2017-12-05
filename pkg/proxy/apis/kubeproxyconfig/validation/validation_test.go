@@ -255,6 +255,7 @@ func TestValidateKubeProxyIPTablesConfiguration(t *testing.T) {
 		},
 		{
 			MasqueradeBit: &valid,
+			RejectBit:     &valid,
 			MasqueradeAll: true,
 			SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
 			MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
@@ -283,6 +284,7 @@ func TestValidateKubeProxyIPTablesConfiguration(t *testing.T) {
 		{
 			config: kubeproxyconfig.KubeProxyIPTablesConfiguration{
 				MasqueradeBit: &valid,
+				RejectBit:     &valid,
 				MasqueradeAll: true,
 				SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
 				MinSyncPeriod: metav1.Duration{Duration: -1 * time.Second},
@@ -292,6 +294,7 @@ func TestValidateKubeProxyIPTablesConfiguration(t *testing.T) {
 		{
 			config: kubeproxyconfig.KubeProxyIPTablesConfiguration{
 				MasqueradeBit: &invalid,
+				RejectBit:     &invalid,
 				MasqueradeAll: true,
 				SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
 				MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
@@ -302,6 +305,7 @@ func TestValidateKubeProxyIPTablesConfiguration(t *testing.T) {
 		{
 			config: kubeproxyconfig.KubeProxyIPTablesConfiguration{
 				MasqueradeBit: &valid,
+				RejectBit:     &valid,
 				MasqueradeAll: true,
 				SyncPeriod:    metav1.Duration{Duration: 1 * time.Second},
 				MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},

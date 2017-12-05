@@ -46,6 +46,9 @@ type KubeProxyIPTablesConfiguration struct {
 	// masqueradeBit is the bit of the iptables fwmark space to use for SNAT if using
 	// the pure iptables proxy mode. Values must be within the range [0, 31].
 	MasqueradeBit *int32
+	// rejectBit is the bit of the iptables fwmark space to use for rejecting package
+	// the pure iptables proxy mode. Values must be within the range [0, 31].
+	RejectBit *int32
 	// masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode.
 	MasqueradeAll bool
 	// syncPeriod is the period that iptables rules are refreshed (e.g. '5s', '1m',

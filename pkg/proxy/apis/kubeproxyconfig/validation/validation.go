@@ -79,6 +79,10 @@ func validateKubeProxyIPTablesConfiguration(config kubeproxyconfig.KubeProxyIPTa
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("MasqueradeBit"), config.MasqueradeBit, "must be within the range [0, 31]"))
 	}
 
+	if config.RejectBit != nil && (*config.RejectBit < 0 || *config.RejectBit > 31) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("RejectBit"), config.RejectBit, "must be within the range [0, 31]"))
+	}
+
 	if config.SyncPeriod.Duration <= 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("SyncPeriod"), config.SyncPeriod, "must be greater than 0"))
 	}

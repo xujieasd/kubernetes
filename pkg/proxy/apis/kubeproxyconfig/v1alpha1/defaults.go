@@ -77,6 +77,10 @@ func SetDefaults_KubeProxyConfiguration(obj *KubeProxyConfiguration) {
 		temp := int32(14)
 		obj.IPTables.MasqueradeBit = &temp
 	}
+	if obj.IPTables.RejectBit == nil {
+		temp := int32(13)
+		obj.IPTables.RejectBit = &temp
+	}
 	if obj.Conntrack.TCPEstablishedTimeout == nil {
 		obj.Conntrack.TCPEstablishedTimeout = &metav1.Duration{Duration: 24 * time.Hour} // 1 day (1/5 default)
 	}

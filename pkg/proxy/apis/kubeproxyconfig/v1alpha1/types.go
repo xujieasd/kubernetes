@@ -44,6 +44,9 @@ type KubeProxyIPTablesConfiguration struct {
 	MasqueradeBit *int32 `json:"masqueradeBit"`
 	// masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode.
 	MasqueradeAll bool `json:"masqueradeAll"`
+	// rejectBit is the bit of the iptables fwmark space to use for reject package if using
+	// the pure iptables proxy mode. Values must be within the range [0, 31].
+	RejectBit *int32 `json:"rejectBit"`
 	// syncPeriod is the period that iptables rules are refreshed (e.g. '5s', '1m',
 	// '2h22m').  Must be greater than 0.
 	SyncPeriod metav1.Duration `json:"syncPeriod"`

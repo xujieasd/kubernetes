@@ -81,6 +81,9 @@ const (
 	// the mark-for-drop chain
 	KubeMarkDropChain utiliptables.Chain = "KUBE-MARK-DROP"
 
+	// the mark-for-reject chain
+	KubeMarkRejectChain utiliptables.Chain = "KUBE-MARK-REJECT"
+
 	// the kubernetes forward chain
 	kubeForwardChain utiliptables.Chain = "KUBE-FORWARD"
 )
@@ -391,6 +394,7 @@ type Proxier struct {
 	iptables       utiliptables.Interface
 	masqueradeAll  bool
 	masqueradeMark string
+	rejectMark     string
 	exec           utilexec.Interface
 	clusterCIDR    string
 	hostname       string
@@ -437,6 +441,7 @@ func NewProxier(ipt utiliptables.Interface,
 	minSyncPeriod time.Duration,
 	masqueradeAll bool,
 	masqueradeBit int,
+        rejectBit int,
 	clusterCIDR string,
 	hostname string,
 	nodeIP net.IP,
@@ -459,6 +464,10 @@ func NewProxier(ipt utiliptables.Interface,
 	masqueradeValue := 1 << uint(masqueradeBit)
 	masqueradeMark := fmt.Sprintf("%#08x/%#08x", masqueradeValue, masqueradeValue)
 
+	// Generate the reject mark to use for reject package.
+	rejectValue := 1 << uint(rejectBit)
+	rejectMark := fmt.Sprintf("%#08x/%#08x", rejectValue, rejectValue)
+
 	if nodeIP == nil {
 		glog.Warningf("invalid nodeIP, initializing kube-proxy with 127.0.0.1 as nodeIP")
 		nodeIP = net.ParseIP("127.0.0.1")
@@ -479,6 +488,7 @@ func NewProxier(ipt utiliptables.Interface,
 		iptables:                 ipt,
 		masqueradeAll:            masqueradeAll,
 		masqueradeMark:           masqueradeMark,
+		rejectMark:               rejectMark,
 		exec:                     exec,
 		clusterCIDR:              clusterCIDR,
 		hostname:                 hostname,
@@ -561,7 +571,7 @@ func CleanupLeftovers(ipt utiliptables.Interface) (encounteredError bool) {
 		natRules := bytes.NewBuffer(nil)
 		writeLine(natChains, "*nat")
 		// Start with chains we know we need to remove.
-		for _, chain := range []utiliptables.Chain{kubeServicesChain, kubeNodePortsChain, kubePostroutingChain, KubeMarkMasqChain} {
+		for _, chain := range []utiliptables.Chain{kubeServicesChain, kubeNodePortsChain, kubePostroutingChain, KubeMarkMasqChain, KubeMarkRejectChain} {
 			if _, found := existingNATChains[chain]; found {
 				chainString := string(chain)
 				writeLine(natChains, existingNATChains[chain]) // flush
@@ -1130,6 +1140,11 @@ func (proxier *Proxier) syncProxyRules() {
 	} else {
 		writeLine(proxier.natChains, utiliptables.MakeChainLine(KubeMarkMasqChain))
 	}
+	if chain, ok := existingNATChains[KubeMarkRejectChain]; ok{
+		writeLine(proxier.natChains, chain)
+	}else {
+		writeLine(proxier.natChains, utiliptables.MakeChainLine(KubeMarkRejectChain))
+	}
 
 	// Install the kubernetes-specific postrouting rules. We use a whole chain for
 	// this so that it is easier to flush and change, for example if the mark
@@ -1147,6 +1162,22 @@ func (proxier *Proxier) syncProxyRules() {
 	writeLine(proxier.natRules, []string{
 		"-A", string(KubeMarkMasqChain),
 		"-j", "MARK", "--set-xmark", proxier.masqueradeMark,
+	}...)
+
+	// Install the kubernetes-specific filter rules. We use a whole chain for
+	// this so that it is easier to flush and change, for example if the mark
+	// value should ever change.
+	writeLine(proxier.filterRules, []string{
+		"-A", string(kubeServicesChain),
+		"-m", "comment", "--comment", `"kubernetes service traffic requiring reject"`,
+		"-m", "mark", "--mark", proxier.rejectMark,
+		"-j", "REJECT",
+	}...)
+
+	// set mark for the chains which need to be rejected,
+	writeLine(proxier.natRules, []string{
+		"-A", string(KubeMarkRejectChain),
+		"-j", "MARK", "--set-xmark", proxier.rejectMark,
 	}...)
 
 	// Accumulate NAT chains to keep.
@@ -1276,19 +1307,6 @@ func (proxier *Proxier) syncProxyRules() {
 			// Allow traffic bound for external IPs that happen to be recognized as local IPs to stay local.
 			// This covers cases like GCE load-balancers which get added to the local routing table.
 			writeLine(proxier.natRules, append(dstLocalOnlyArgs, "-j", string(svcChain))...)
-
-			// If the service has no endpoints then reject packets coming via externalIP
-			// Install ICMP Reject rule in filter table for destination=externalIP and dport=svcport
-			if len(proxier.endpointsMap[svcName]) == 0 {
-				writeLine(proxier.filterRules,
-					"-A", string(kubeServicesChain),
-					"-m", "comment", "--comment", fmt.Sprintf(`"%s has no endpoints"`, svcNameString),
-					"-m", protocol, "-p", protocol,
-					"-d", utilproxy.ToCIDR(net.ParseIP(externalIP)),
-					"--dport", strconv.Itoa(svcInfo.port),
-					"-j", "REJECT",
-				)
-			}
 		}
 
 		// Capture load-balancer ingress.
@@ -1409,32 +1427,14 @@ func (proxier *Proxier) syncProxyRules() {
 				// Currently we only create it for loadbalancers (#33586).
 				writeLine(proxier.natRules, append(args, "-j", string(svcXlbChain))...)
 			}
-
-			// If the service has no endpoints then reject packets.  The filter
-			// table doesn't currently have the same per-service structure that
-			// the nat table does, so we just stick this into the kube-services
-			// chain.
-			if len(proxier.endpointsMap[svcName]) == 0 {
-				writeLine(proxier.filterRules,
-					"-A", string(kubeServicesChain),
-					"-m", "comment", "--comment", fmt.Sprintf(`"%s has no endpoints"`, svcNameString),
-					"-m", "addrtype", "--dst-type", "LOCAL",
-					"-m", protocol, "-p", protocol,
-					"--dport", strconv.Itoa(svcInfo.nodePort),
-					"-j", "REJECT",
-				)
-			}
 		}
 
-		// If the service has no endpoints then reject packets.
+		// If the service has no endpoints then go into KubeMarkRejectChain and mark the package.
 		if len(proxier.endpointsMap[svcName]) == 0 {
-			writeLine(proxier.filterRules,
-				"-A", string(kubeServicesChain),
+			writeLine(proxier.natRules,
+				"-A", string(svcChain),
 				"-m", "comment", "--comment", fmt.Sprintf(`"%s has no endpoints"`, svcNameString),
-				"-m", protocol, "-p", protocol,
-				"-d", utilproxy.ToCIDR(svcInfo.clusterIP),
-				"--dport", strconv.Itoa(svcInfo.port),
-				"-j", "REJECT",
+				"-j", string(KubeMarkRejectChain),
 			)
 			continue
 		}

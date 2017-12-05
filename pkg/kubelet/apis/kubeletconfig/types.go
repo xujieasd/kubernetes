@@ -250,7 +250,7 @@ type KubeletConfiguration struct {
 	ProtectKernelDefaults bool
 	// If true, Kubelet ensures a set of iptables rules are present on host.
 	// These rules will serve as utility for various components, e.g. kube-proxy.
-	// The rules will be created based on IPTablesMasqueradeBit and IPTablesDropBit.
+	// The rules will be created based on IPTablesMasqueradeBit IPTablesRejectBit and IPTablesDropBit.
 	MakeIPTablesUtilChains bool
 	// iptablesMasqueradeBit is the bit of the iptables fwmark space to use for SNAT
 	// Values must be within the range [0, 31].
@@ -260,6 +260,9 @@ type KubeletConfiguration struct {
 	// iptablesDropBit is the bit of the iptables fwmark space to use for dropping packets. Kubelet will ensure iptables mark and drop rules.
 	// Values must be within the range [0, 31]. Must be different from IPTablesMasqueradeBit
 	IPTablesDropBit int32
+	// iptablesRejectBit is the bit of the iptables fwmark space to use for rejecting packets. Kubelet will ensure iptables mark and reject rules.
+	// Values must be within the range [0, 31]. Must be different from other marks
+	IPTablesRejectBit int32
 	// featureGates is a map of feature names to bools that enable or disable alpha/experimental features.
 	FeatureGates map[string]bool
 	// Tells the Kubelet to fail to start if swap is enabled on the node.

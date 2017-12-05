@@ -375,8 +375,17 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		if kubeCfg.IPTablesDropBit > 31 || kubeCfg.IPTablesDropBit < 0 {
 			return nil, fmt.Errorf("iptables-drop-bit is not valid. Must be within [0, 31]")
 		}
+		if kubeCfg.IPTablesRejectBit > 31 || kubeCfg.IPTablesRejectBit < 0 {
+			return nil, fmt.Errorf("iptables-reject-bit is not valid. Must be within [0, 31]")
+		}
 		if kubeCfg.IPTablesDropBit == kubeCfg.IPTablesMasqueradeBit {
 			return nil, fmt.Errorf("iptables-masquerade-bit and iptables-drop-bit must be different")
+		}
+		if kubeCfg.IPTablesDropBit == kubeCfg.IPTablesRejectBit {
+			return nil, fmt.Errorf("iptables-reject-bit and iptables-drop-bit must be different")
+		}
+		if kubeCfg.IPTablesRejectBit == kubeCfg.IPTablesMasqueradeBit {
+			return nil, fmt.Errorf("iptables-masquerade-bit and iptables-reject-bit must be different")
 		}
 	}
 
@@ -546,6 +555,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		makeIPTablesUtilChains:                  kubeCfg.MakeIPTablesUtilChains,
 		iptablesMasqueradeBit:                   int(kubeCfg.IPTablesMasqueradeBit),
 		iptablesDropBit:                         int(kubeCfg.IPTablesDropBit),
+		iptablesRejectBit:                       int(kubeCfg.IPTablesRejectBit),
 		experimentalHostUserNamespaceDefaulting: utilfeature.DefaultFeatureGate.Enabled(features.ExperimentalHostUserNamespaceDefaultingGate),
 		keepTerminatedPodVolumes:                keepTerminatedPodVolumes,
 	}
@@ -1169,6 +1179,9 @@ type Kubelet struct {
 
 	// The bit of the fwmark space to mark packets for dropping.
 	iptablesDropBit int
+
+	// The bit of the fwmark space to mark packets for rejecting.
+	iptablesRejectBit int
 
 	// The AppArmor validator for checking whether AppArmor is supported.
 	appArmorValidator apparmor.Validator

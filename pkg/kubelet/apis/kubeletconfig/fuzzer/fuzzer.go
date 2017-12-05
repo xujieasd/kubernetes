@@ -91,6 +91,7 @@ func Funcs(codecs runtimeserializer.CodecFactory) []interface{} {
 			obj.MakeIPTablesUtilChains = true
 			obj.IPTablesMasqueradeBit = v1alpha1.DefaultIPTablesMasqueradeBit
 			obj.IPTablesDropBit = v1alpha1.DefaultIPTablesDropBit
+			obj.IPTablesRejectBit = v1alpha1.DefaultIPTablesRejectBit
 			obj.CgroupsPerQOS = true
 			obj.CgroupDriver = "cgroupfs"
 			obj.EnforceNodeAllocatable = v1alpha1.DefaultNodeAllocatableEnforcement

@@ -257,6 +257,7 @@ hostnameOverride: "foo"
 iptables:
   masqueradeAll: true
   masqueradeBit: 17
+  rejectBit: 16
   minSyncPeriod: 10s
   syncPeriod: 60s
 ipvs:
@@ -368,6 +369,7 @@ udpTimeoutMilliseconds: 123ms
 			IPTables: kubeproxyconfig.KubeProxyIPTablesConfiguration{
 				MasqueradeAll: true,
 				MasqueradeBit: utilpointer.Int32Ptr(17),
+				RejectBit    : utilpointer.Int32Ptr(16),
 				MinSyncPeriod: metav1.Duration{Duration: 10 * time.Second},
 				SyncPeriod:    metav1.Duration{Duration: 60 * time.Second},
 			},

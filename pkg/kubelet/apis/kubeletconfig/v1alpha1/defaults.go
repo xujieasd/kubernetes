@@ -36,6 +36,7 @@ const (
 	// More details here: https://github.com/kubernetes/kubernetes/issues/50986
 	AutoDetectCloudProvider = "auto-detect"
 
+	DefaultIPTablesRejectBit     = 13
 	DefaultIPTablesMasqueradeBit = 14
 	DefaultIPTablesDropBit       = 15
 )
@@ -216,6 +217,10 @@ func SetDefaults_KubeletConfiguration(obj *KubeletConfiguration) {
 	if obj.IPTablesDropBit == nil {
 		temp := int32(DefaultIPTablesDropBit)
 		obj.IPTablesDropBit = &temp
+	}
+	if obj.IPTablesRejectBit == nil {
+		temp := int32(DefaultIPTablesRejectBit)
+		obj.IPTablesRejectBit = &temp
 	}
 	if obj.CgroupsPerQOS == nil {
 		temp := true

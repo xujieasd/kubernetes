@@ -38,6 +38,9 @@ const (
 	// KubeMarkDropChain is the mark-for-drop chain
 	KubeMarkDropChain utiliptables.Chain = "KUBE-MARK-DROP"
 
+	// KubeMarkDropChain is the mark-for-drop chain
+	KubeMarkRejectChain utiliptables.Chain = "KUBE-REJECT-DROP"
+
 	// KubePostroutingChain is kubernetes postrouting rules
 	KubePostroutingChain utiliptables.Chain = "KUBE-POSTROUTING"
 
@@ -203,6 +206,8 @@ func (kl *Kubelet) updatePodCIDR(cidr string) {
 // 	Marked connection will be drop on INPUT/OUTPUT Chain in filter table
 // 2. 	In nat table, KUBE-MARK-MASQ rule to mark connections for SNAT
 // 	Marked connection will get SNAT on POSTROUTING Chain in nat table
+// 3. 	In nat table, KUBE-MARK-REKECT rule to mark connections for rejecting
+// 	Marked connection will be drop on INPUT/OUTPUT Chain in filter table
 func (kl *Kubelet) syncNetworkUtil() {
 	if kl.iptablesMasqueradeBit < 0 || kl.iptablesMasqueradeBit > 31 {
 		glog.Errorf("invalid iptables-masquerade-bit %v not in [0, 31]", kl.iptablesMasqueradeBit)
@@ -214,8 +219,23 @@ func (kl *Kubelet) syncNetworkUtil() {
 		return
 	}
 
+	if kl.iptablesRejectBit < 0 || kl.iptablesRejectBit > 31 {
+		glog.Errorf("invalid iptables-reject-bit %v not in [0, 31]", kl.iptablesRejectBit)
+		return
+	}
+
 	if kl.iptablesDropBit == kl.iptablesMasqueradeBit {
 		glog.Errorf("iptables-masquerade-bit %v and iptables-drop-bit %v must be different", kl.iptablesMasqueradeBit, kl.iptablesDropBit)
+		return
+	}
+
+	if kl.iptablesRejectBit == kl.iptablesMasqueradeBit {
+		glog.Errorf("iptables-masquerade-bit %v and iptables-reject-bit %v must be different", kl.iptablesMasqueradeBit, kl.iptablesRejectBit)
+		return
+	}
+
+	if kl.iptablesDropBit == kl.iptablesRejectBit {
+		glog.Errorf("iptables-reject-bit %v and iptables-drop-bit %v must be different", kl.iptablesRejectBit, kl.iptablesDropBit)
 		return
 	}
 
@@ -272,6 +292,17 @@ func (kl *Kubelet) syncNetworkUtil() {
 		"-m", "comment", "--comment", "kubernetes service traffic requiring SNAT",
 		"-m", "mark", "--mark", masqueradeMark, "-j", "MASQUERADE"); err != nil {
 		glog.Errorf("Failed to ensure SNAT rule for packets marked by %v in %v chain %v: %v", KubeMarkMasqChain, utiliptables.TableNAT, KubePostroutingChain, err)
+		return
+	}
+
+	// Setup KUBE-MARK-REJCET rules
+	rejectMark := getIPTablesMark(kl.iptablesRejectBit)
+	if _, err := kl.iptClient.EnsureChain(utiliptables.TableNAT, KubeMarkRejectChain); err != nil {
+		glog.Errorf("Failed to ensure that %s chain %s exists: %v", utiliptables.TableNAT, KubeMarkRejectChain, err)
+		return
+	}
+	if _, err := kl.iptClient.EnsureRule(utiliptables.Append, utiliptables.TableNAT, KubeMarkRejectChain, "-j", "MARK", "--set-xmark", rejectMark); err != nil {
+		glog.Errorf("Failed to ensure marking rule for %v: %v", KubeMarkRejectChain, err)
 		return
 	}
 }

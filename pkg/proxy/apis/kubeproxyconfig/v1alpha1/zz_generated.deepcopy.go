@@ -155,6 +155,15 @@ func (in *KubeProxyIPTablesConfiguration) DeepCopyInto(out *KubeProxyIPTablesCon
 			**out = **in
 		}
 	}
+	if in.RejectBit != nil {
+		in, out := &in.RejectBit, &out.RejectBit
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int32)
+			**out = **in
+		}
+	}
 	out.SyncPeriod = in.SyncPeriod
 	out.MinSyncPeriod = in.MinSyncPeriod
 	return

@@ -176,6 +176,7 @@ func Convert_kubeproxyconfig_KubeProxyConntrackConfiguration_To_v1alpha1_KubePro
 func autoConvert_v1alpha1_KubeProxyIPTablesConfiguration_To_kubeproxyconfig_KubeProxyIPTablesConfiguration(in *KubeProxyIPTablesConfiguration, out *kubeproxyconfig.KubeProxyIPTablesConfiguration, s conversion.Scope) error {
 	out.MasqueradeBit = (*int32)(unsafe.Pointer(in.MasqueradeBit))
 	out.MasqueradeAll = in.MasqueradeAll
+	out.RejectBit = (*int32)(unsafe.Pointer(in.RejectBit))
 	out.SyncPeriod = in.SyncPeriod
 	out.MinSyncPeriod = in.MinSyncPeriod
 	return nil
@@ -188,6 +189,7 @@ func Convert_v1alpha1_KubeProxyIPTablesConfiguration_To_kubeproxyconfig_KubeProx
 
 func autoConvert_kubeproxyconfig_KubeProxyIPTablesConfiguration_To_v1alpha1_KubeProxyIPTablesConfiguration(in *kubeproxyconfig.KubeProxyIPTablesConfiguration, out *KubeProxyIPTablesConfiguration, s conversion.Scope) error {
 	out.MasqueradeBit = (*int32)(unsafe.Pointer(in.MasqueradeBit))
+	out.RejectBit = (*int32)(unsafe.Pointer(in.RejectBit))
 	out.MasqueradeAll = in.MasqueradeAll
 	out.SyncPeriod = in.SyncPeriod
 	out.MinSyncPeriod = in.MinSyncPeriod

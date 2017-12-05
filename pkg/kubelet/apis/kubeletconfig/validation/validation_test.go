@@ -37,6 +37,7 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 		ImageGCLowThresholdPercent:  80,
 		IPTablesDropBit:             15,
 		IPTablesMasqueradeBit:       14,
+		IPTablesRejectBit:           13,
 		KubeAPIBurst:                10,
 		KubeAPIQPS:                  5,
 		MaxOpenFiles:                1000000,
@@ -65,6 +66,7 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 		ImageGCLowThresholdPercent:  101,
 		IPTablesDropBit:             -10,
 		IPTablesMasqueradeBit:       -10,
+		IPTablesRejectBit:           -10,
 		KubeAPIBurst:                -10,
 		KubeAPIQPS:                  -10,
 		MaxOpenFiles:                -10,
@@ -76,7 +78,7 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 		RegistryBurst:               -10,
 		RegistryPullQPS:             -10,
 	}
-	if allErrors := ValidateKubeletConfiguration(errorCase); len(allErrors.(utilerrors.Aggregate).Errors()) != 21 {
-		t.Errorf("expect 21 errors got %v", len(allErrors.(utilerrors.Aggregate).Errors()))
+	if allErrors := ValidateKubeletConfiguration(errorCase); len(allErrors.(utilerrors.Aggregate).Errors()) != 22 {
+		t.Errorf("expect 22 errors got %v", len(allErrors.(utilerrors.Aggregate).Errors()))
 	}
 }

@@ -98,6 +98,7 @@ func Funcs(codecs runtimeserializer.CodecFactory) []interface{} {
 					},
 					IPTables: kubeproxyconfigv1alpha1.KubeProxyIPTablesConfiguration{
 						MasqueradeBit: utilpointer.Int32Ptr(0),
+						RejectBit:     utilpointer.Int32Ptr(0),
 						SyncPeriod:    metav1.Duration{Duration: 1},
 					},
 					OOMScoreAdj:       utilpointer.Int32Ptr(0),
